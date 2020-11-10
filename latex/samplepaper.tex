@@ -14,7 +14,7 @@
 
 \begin{document}
 %
-\title{Automatic Machine Learning on Large Graphs}
+\title{Automatic Graph Representation Learning}
 %
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
@@ -32,18 +32,13 @@
 \maketitle              % typeset the header of the contribution
 %
 \begin{abstract}
-Graph Neural Network (GNN) is a powerful tool for processing graph structured data. \
-In recent years, several attempts have been made to automatically design data-specific GNN architectures with the help of Neural Architecture Search (NAS). Although these efforts have achieved promising performance compared to hand-crafted ones like GCN and GAT, \
-it is difficult to apply them on large graphs with millions of nodes and edges due to time and memory limit. In this paper, we first prove that a data-specific GNN architecture is necessary, then propose the NAS-LG (Neural Architecture Search on Large Graphs) framework, including a well-designed search space \
-and an efficient NAS algorithm. Extensive experiments on Open Graph Benchmark (OGB) demonstrate that NAS-LG not only 
+Graph Neural Network (GNNs) have shown great power for processing graph-structured data. \
+Most GNN architectures are hand crafted, which requires domain knowledge and difficult to generalize to different kinds of graphs. Recently, several attempts have been made to automatically search data-specific GNN architectures in a pre-defined search space and expect to acquire well-performed GNNs. Although these efforts have achieved promising performance, some drawbacks of them are remain to be addressed.\
+To overcome these drawbacks, we present AutoGL, an Automatic Machine Learning framework on Graph-Structured data. Unlike previous work that only search for a good model architecture, we first combine different aspects of machine learning consist of data argumentation, hyper parameter optimization (HPO), neural architecture search (NAS) and ensemble methods into an unified search space, then use an efficient algorithm to search the best \
+combination on a particular dataset. Extensive experiments demonstrate that AutoGL achieves better or competitive results on various tasks and datasets compared to state-of-the-art GNN architectures. \
+Our code is available at https://github.com/JunweiSUN/AutoGL.
 
-
-
-
-The abstract should briefly summarize the contents of the paper in
-150--250 words.
-
-\keywords{First keyword  \and Second keyword \and Another keyword.}
+\keywords{Graph representation learning \and Automatic machine learning \and Graph neural network}
 \end{abstract}
 %
 %
@@ -110,6 +105,11 @@ propositions, and corollaries are styled the same way.
 Proofs, examples, and remarks have the initial word in italics,
 while the following text appears in normal font.
 \end{proof}
+
+\section{Related Works}
+\subsection{Automatic Machine Learning}
+\subsection{Graph Neural Networks}
+
 For citations of references, we prefer the use of square brackets
 and consecutive numbers. Citations using labels or the author/year
 convention are also acceptable. The following bibliography provides
