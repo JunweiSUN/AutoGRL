@@ -131,6 +131,11 @@ dmypy.json
 # data
 dataset/
 embeddings/
+data/
+pubmed/
+cora/
+citeseer/
 
 # vscode
 .vscode/
+
