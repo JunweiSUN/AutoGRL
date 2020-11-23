@@ -30,38 +30,38 @@ parser.add_argument('--K', type=int, default=10)
 parser.add_argument('--alpha', type=float, default=0.1)
 args = parser.parse_args()
 
-dataset = Planetoid(".", "citeseer", transform=T.NormalizeFeatures(), split='random')
+dataset = Planetoid(".", "citeseer", split='public', transform=T.NormalizeFeatures())
 data = dataset[0]
 # print_statistics(data)
-from augmentation import label_propagation
+from augmentation import label_propagation, graph_perturbation
 # label_propagation(data)
+# graph_perturbation(data, centrality_type='eigenvector', data_type='edge')
+from torch_geometric.utils import dropout_adj
+data.edge_index = dropout_adj(data.edge_index, p=0.5)[0]
 
 
 class Net(torch.nn.Module):
     def __init__(self, dataset):
         super(Net, self).__init__()
-        self.lin1 = Linear(dataset.num_features, args.hidden)
-        self.lin2 = Linear(args.hidden, dataset.num_classes)
-        self.prop1 = APPNP(args.K, args.alpha)
-        self.act = torch.nn.PReLU(num_parameters=args.hidden)
-
-    def reset_parameters(self):
-        self.lin1.reset_parameters()
-        self.lin2.reset_parameters()
+        self.conv1 = GATConv(dataset.num_features, 8, heads=8, dropout=0.6)
+        # On the Pubmed dataset, use heads=8 in conv2.
+        self.conv2 = GATConv(8 * 8, dataset.num_classes, heads=1, concat=False,
+                             dropout=0.6)
 
     def forward(self, data):
-        x, edge_index = data.x, data.edge_index
-        x = F.dropout(x, p=args.dropout, training=self.training)
-        # x = self.act(self.lin1(x))
-        x = F.relu(self.lin1(x))
-        x = F.dropout(x, p=args.dropout, training=self.training)
-        x = self.lin2(x)
-        x = self.prop1(x, edge_index)
+        x = F.dropout(data.x, p=0.6, training=self.training)
+        x = F.elu(self.conv1(x, data.edge_index))
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = self.conv2(x, data.edge_index)
         return F.log_softmax(x, dim=1)
 
 model = Net(dataset)
 data = data.to('cuda')
 model = model.to('cuda')
+
+from augmentation import add_and_remove_edges
+add_and_remove_edges(data, 1, 1)
+exit(0)
 
 trainer = EarlyStoppingTrainer(args, model)
 evaluator = Evaluator(metric='acc')
