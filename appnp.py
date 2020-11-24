@@ -30,7 +30,7 @@ parser.add_argument('--K', type=int, default=10)
 parser.add_argument('--alpha', type=float, default=0.1)
 args = parser.parse_args()
 
-dataset = Planetoid(".", "citeseer", split='public', transform=T.NormalizeFeatures())
+dataset = Planetoid(".", "cora", split='full', transform=T.NormalizeFeatures())
 data = dataset[0]
 # print_statistics(data)
 from augmentation import label_propagation, graph_perturbation
@@ -43,25 +43,23 @@ data.edge_index = dropout_adj(data.edge_index, p=0.5)[0]
 class Net(torch.nn.Module):
     def __init__(self, dataset):
         super(Net, self).__init__()
-        self.conv1 = GATConv(dataset.num_features, 8, heads=8, dropout=0.6)
-        # On the Pubmed dataset, use heads=8 in conv2.
-        self.conv2 = GATConv(8 * 8, dataset.num_classes, heads=1, concat=False,
-                             dropout=0.6)
+        self.conv1 = GCNConv(dataset.num_features, 128, cached=True)
+        self.conv2 = GCNConv(128, dataset.num_classes, cached=True)
+        # self.conv1 = ChebConv(data.num_features, 16, K=2)
+        # self.conv2 = ChebConv(16, data.num_features, K=2)
 
     def forward(self, data):
-        x = F.dropout(data.x, p=0.6, training=self.training)
-        x = F.elu(self.conv1(x, data.edge_index))
-        x = F.dropout(x, p=0.6, training=self.training)
-        x = self.conv2(x, data.edge_index)
+        x, edge_index, edge_weight = data.x, data.edge_index, data.edge_attr
+        x = F.relu(self.conv1(x, edge_index, edge_weight))
+        x = F.dropout(x, training=self.training)
+        x = self.conv2(x, edge_index, edge_weight)
         return F.log_softmax(x, dim=1)
 
+from augmentation import add_and_remove_edges
+# add_and_remove_edges(data, 20, 20)
 model = Net(dataset)
 data = data.to('cuda')
 model = model.to('cuda')
-
-from augmentation import add_and_remove_edges
-add_and_remove_edges(data, 1, 1)
-exit(0)
 
 trainer = EarlyStoppingTrainer(args, model)
 evaluator = Evaluator(metric='acc')
@@ -70,4 +68,3 @@ logits = trainer.inference(data)
 y_pred = logits[data.test_mask].max(1)[1]
 y_true = data.y.squeeze()[data.test_mask]
 print(evaluator(y_true, y_pred))
-

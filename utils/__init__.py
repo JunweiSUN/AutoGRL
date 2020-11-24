@@ -1,0 +1,1 @@
+from .collections import print_statistics

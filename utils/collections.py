@@ -2,6 +2,8 @@ from torch_geometric.utils import is_undirected
 from pandas import DataFrame
 import torch
 
+__all__ = ['print_statistics']
+
 def print_statistics(data):
     print('Original feature size:', data.x.shape[1])
     remove_unique_feature(data)
