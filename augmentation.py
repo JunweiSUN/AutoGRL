@@ -112,37 +112,37 @@ def sample_graph_det(adj_orig, A_pred, remove_pct, add_pct):
     return adj_pred
 
 def add_and_remove_edges(data, remove_pct, add_pct, hidden_channels=16, epochs=400):
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     edge_index = deepcopy(data.edge_index)
-    # data = train_test_split_edges(data, val_ratio=0.1, test_ratio=0)
-    # num_features = data.x.shape[1]
-    # model = GAE(GCNEncoder(num_features, hidden_channels))
-    # model = model.to(device)
-    # x = data.x.to(device)
-    # train_pos_edge_index = data.train_pos_edge_index.to(device)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    data = train_test_split_edges(data, val_ratio=0.1, test_ratio=0)
+    num_features = data.x.shape[1]
+    model = GAE(GCNEncoder(num_features, hidden_channels))
+    model = model.to(device)
+    x = data.x.to(device)
+    train_pos_edge_index = data.train_pos_edge_index.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-    # best_val_auc = 0
-    # best_z = None
-    # for epoch in range(1, epochs + 1):
-    #     model.train()
-    #     optimizer.zero_grad()
-    #     z = model.encode(x, train_pos_edge_index)
-    #     loss = model.recon_loss(z, train_pos_edge_index)
-    #     loss.backward()
-    #     optimizer.step()
+    best_val_auc = 0
+    best_z = None
+    for epoch in range(1, epochs + 1):
+        model.train()
+        optimizer.zero_grad()
+        z = model.encode(x, train_pos_edge_index)
+        loss = model.recon_loss(z, train_pos_edge_index)
+        loss.backward()
+        optimizer.step()
 
-    #     model.eval()
-    #     with torch.no_grad():
-    #         z = model.encode(x, train_pos_edge_index)
+        model.eval()
+        with torch.no_grad():
+            z = model.encode(x, train_pos_edge_index)
 
-    #     auc, ap = model.test(z, data.val_pos_edge_index, data.val_neg_edge_index)
-    #     print('Val | Epoch: {:03d}, AUC: {:.4f}, AP: {:.4f}'.format(epoch, auc, ap))
-    #     if auc > best_val_auc:
-    #         best_val_auc = auc
-    #         best_z = deepcopy(z)
+        auc, ap = model.test(z, data.val_pos_edge_index, data.val_neg_edge_index)
+        print('Val | Epoch: {:03d}, AUC: {:.4f}, AP: {:.4f}'.format(epoch, auc, ap))
+        if auc > best_val_auc:
+            best_val_auc = auc
+            best_z = deepcopy(z)
     
-    # A_pred = torch.sigmoid(torch.mm(z, z.T)).cpu().numpy()
+    A_pred = torch.sigmoid(torch.mm(z, z.T)).cpu().numpy()
     import pickle
     A_pred = pickle.load(open('citeseer_graph_2_logits.pkl', 'rb'))
     adj_orig = to_scipy_sparse_matrix(edge_index).asformat('csr')
