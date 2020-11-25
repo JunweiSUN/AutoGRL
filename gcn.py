@@ -19,14 +19,13 @@ dataset = Planetoid('.', 'cora', transform=T.NormalizeFeatures())
 # data = dataset[0]
 data = load_data('usa-airports')
 print(data)
-data.x = spectral(data, 'usa-airports')
+data.x = onehot(data, 'usa-airports')
 print(data.x.shape)
 print(data.train_mask.sum())
 print(data.val_mask.sum())
 print(data.test_mask.sum())
 print(data.edge_index.shape)
 print(dataset.num_classes)
-# add_and_remove_edges(data, 0, 46)
 # label_propagation(data)
 if args.use_gdc:
     gdc = T.GDC(self_loop_weight=1, normalization_in='sym',

@@ -16,7 +16,9 @@ def load_data(name, transform=None):
     '''
     ROOT = osp.dirname(osp.abspath(__file__)) + '/..'
     if name in ['cora', 'citeseer', 'pubmed']:   # datasets for transductive node classifiction
-        return Planetoid(osp.join(ROOT, 'data'), name, transform=transform)[0]
+        data = Planetoid(osp.join(ROOT, 'data'), name, transform=transform)[0]
+        data.task = 'semi' # simi-supervised
+        return data
     elif name in ['ppi']: # datasets for inductive node classification
         train_dataset = PPI(osp.join(ROOT, 'data', 'ppi'), split='train', transform=transform)
         val_dataset = PPI(osp.join(ROOT, 'data', 'ppi'), split='val', transform=transform)
@@ -56,6 +58,7 @@ def load_data(name, transform=None):
         if data.x and transform:
             data.x = transform(data.x)
         data.num_nodes = num_nodes
+        data.task = 'sup'
         pickle.dump(data, open(osp.join(ROOT, 'data', name, 'data.pkl'), 'wb'))
         return data
 
