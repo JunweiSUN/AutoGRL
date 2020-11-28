@@ -1,6 +1,7 @@
 from torch_geometric.data import Data
 from torch_geometric.datasets import Planetoid, PPI
 from torch_geometric.utils import from_networkx
+from ogb.nodeproppred import PygNodePropPredDataset
 import os.path as osp
 import networkx as nx
 import numpy as np
@@ -60,6 +61,18 @@ def load_data(name, transform=None):
         data.num_nodes = num_nodes
         data.task = 'sup'
         pickle.dump(data, open(osp.join(ROOT, 'data', name, 'data.pkl'), 'wb'))
+        return data
+
+    elif name in ['ogbn-arxiv']:
+        dataset = PygNodePropPredDataset(name, root=osp.join(ROOT, 'data'))
+        split_idx = dataset.get_idx_split()
+        data = dataset[0]
+        split_idx['val'] = split_idx.pop('valid')
+        for key, idx in split_idx.items():
+            mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+            mask[idx] = True
+            data[f'{key}_mask'] = mask
+        print(data.edge_index.shape)
         return data
 
     else:
