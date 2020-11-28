@@ -143,63 +143,10 @@ def add_and_remove_edges(data, remove_pct, add_pct, hidden_channels=16, epochs=4
             best_z = deepcopy(z)
     
     A_pred = torch.sigmoid(torch.mm(z, z.T)).cpu().numpy()
-    import pickle
-    A_pred = pickle.load(open('citeseer_graph_2_logits.pkl', 'rb'))
+
     adj_orig = to_scipy_sparse_matrix(edge_index).asformat('csr')
     adj_pred = sample_graph_det(adj_orig, A_pred, remove_pct, add_pct)
     data.edge_index, _ = from_scipy_sparse_matrix(adj_pred)
-
-def graph_perturbation(data, centrality_type='degree', data_type='edge'):
-    '''
-    Data augmentation on nodes or edges
-    data: torch_geometric.Data
-    centrality_type: str, one of ['degree', 'eigenvector', 'pagerank']
-    data_type: str, node or edge
-    '''
-    undirected_flag = is_undirected(data.edge_index)
-    G = to_networkx(data, to_undirected=undirected_flag)
-    if centrality_type == 'degree':
-        if undirected_flag:
-            node_c = degree_centrality(G) # node_c for node_centrality
-        else:
-            node_c = in_degree_centrality(G)
-    elif centrality_type == 'eigenvector':
-        node_c = eigenvector_centrality(G)
-    elif centrality_type == 'pagerank':
-        node_c = pagerank(G)
-    else:
-        raise NotImplementedError('Not implemented graph perturbation method.')
-
-    if data_type == 'node':
-        pass
-    
-    elif data_type == 'edge':
-        edge_c = {} # # edge_c for edge_centrality
-        for edge in G.edges:
-            u, v = edge[0], edge[1]
-            if undirected_flag:
-                edge_c[edge] = np.log((node_c[u] + node_c[v]) / 2)
-            else:
-                edge_c[edge] = np.log(node_c[v])
-
-        s_max = max(edge_c.values())
-        s_mean = sum(edge_c.values()) / len(edge_c)
-        p_e = 0.5
-        p_tao = 0.5
-        for edge, s in edge_c.items():
-            edge_c[edge] = min((s_max - s) / (s_max - s_mean) * p_e, p_tao)
-
-        removed_edges = []
-        probs = np.random.uniform(0, 1, (len(edge_c)))
-        for i, (edge, p) in enumerate(edge_c.items()):
-            if probs[i] < p:
-                removed_edges.append(edge)
-        
-        G.remove_edges_from(removed_edges)
-        print('Remove {} edges'.format(len(removed_edges)))
-        data.edge_index = from_networkx(G).edge_index
-    else:
-        raise NotImplementedError('Not supported data type')
 
 
 
