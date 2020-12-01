@@ -1,5 +1,4 @@
 from sklearn.metrics import accuracy_score, f1_score
-from networkx.algorithms import node_classification
 
 class Evaluator:
     def __init__(self, metric='acc'):
@@ -15,4 +14,3 @@ class Evaluator:
             return f1_score(y_true, y_pred, average='micro')
         else:
             raise NotImplementedError('Not supported metric')
-
