@@ -3,15 +3,30 @@ import numpy as np
 import scipy
 import torch
 from scipy import sparse
+import pickle
+import os.path as osp
 
 __all__ = ['label_propagation']
 
-def label_propagation(data, alpha=0.99, max_iter=10):
+CWD = osp.dirname(osp.abspath(__file__))
+ROOT = CWD + '/../..'
+
+def label_propagation(data, name, alpha=0.99, max_iter=10):
     '''
     Label propagation algorithm, modified from the NetworkX implementation.
     Label some nodes then add them to the training set.
     Only support undirected graphs.
     '''
+
+    try:
+        cached_train_mask, cached_y = pickle.load(open(f'{ROOT}/cache/label/{name}.pt', 'rb'))
+        print(f'Use cached label augmentation with for dataset {name}')
+        data.train_mask = cached_train_mask
+        data.y = cached_y
+        return
+    except FileNotFoundError:
+        print(f'cache/label/{name}.pt not found! Regenerating it now')
+
     if hasattr(data, 'adj_t'):
         X = data.adj_t.to_scipy(layout='csr').astype('long')
     else:
@@ -59,4 +74,6 @@ def label_propagation(data, alpha=0.99, max_iter=10):
             data.train_mask[node_id] = True
             data.y[node_id] = predicted[node_id]
             count += 1
+
     print('Label propagation: Label additional {} nodes in the training set.'.format(count))
+    pickle.dump((data.train_mask, data.y), open(f'{ROOT}/cache/label/{name}.pt', 'wb'))

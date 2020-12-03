@@ -74,8 +74,8 @@ def train_model(args, dl, model):
 
         A_pred = torch.sigmoid(A_pred).detach().cpu()
         r = get_scores(dl.val_edges, dl.val_edges_false, A_pred, dl.adj_label)
-        # print('Epoch{:3}: train_loss: {:.4f} recon_acc: {:.4f} val_roc: {:.4f} val_ap: {:.4f} f1: {:.4f} time: {:.4f}'.format(
-        #     epoch+1, loss.item(), r['acc'], r['roc'], r['ap'], r['f1'], time.time()-t))
+        print('Epoch{:3}: train_loss: {:.4f} recon_acc: {:.4f} val_roc: {:.4f} val_ap: {:.4f} f1: {:.4f}'.format(
+            epoch+1, loss.item(), r['acc'], r['roc'], r['ap'], r['f1']))
         if r[args.criterion] > best_vali_criterion:
             best_vali_criterion = r[args.criterion]
             best_state_dict = copy.deepcopy(model.state_dict())

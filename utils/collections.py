@@ -38,3 +38,9 @@ def remove_unique_feature(data):
     df.drop(unique_counts.index, axis=1, inplace=True)
     print('Drop {} features'.format(len(unique_counts)))
     data.x = torch.tensor(df.to_numpy(), dtype=torch.float)
+
+
+
+
+
+

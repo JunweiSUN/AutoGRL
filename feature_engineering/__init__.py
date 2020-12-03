@@ -1,1 +1,1 @@
-from .embedding import node2vec, onehot, svd, xavier, spectral
+from .embedding import get_embedding

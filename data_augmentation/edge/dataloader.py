@@ -22,7 +22,7 @@ class DataLoader():
         adj = data.edge_index
         adj, _ = remove_self_loops(adj)
         adj = to_scipy_sparse_matrix(adj).asformat('csr')
-        features = data.x.numpy()
+        features = data.ori_x.numpy()
         features = sp.csr_matrix(features)
         self.adj_orig = adj
         self.features_orig = features

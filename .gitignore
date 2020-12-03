@@ -135,6 +135,7 @@ data/
 pubmed/
 cora/
 citeseer/
+cache/
 
 # vscode
 .vscode/
