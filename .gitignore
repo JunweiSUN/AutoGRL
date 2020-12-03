@@ -136,6 +136,7 @@ pubmed/
 cora/
 citeseer/
 cache/
+catboost_info/
 
 # vscode
 .vscode/

@@ -30,20 +30,20 @@ class GNNModel(nn.Module):
         self.act_layers = nn.ModuleList()
 
         if self.gnn_layers == 1:
-            self.gnn_layers.append(GNNLayer(self.in_channels, self.num_class, args.aggr_type, args.att_type))
+            self.gnn_layers.append(GNNLayer(self.in_channels, self.num_class, args.aggr_type, args.conv_type))
         else:
-            self.gnn_layers.append(GNNLayer(self.in_channels, args.hidden_size, args.aggr_type, args.att_type))
+            self.gnn_layers.append(GNNLayer(self.in_channels, args.hidden_size, args.aggr_type, args.conv_type))
             self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
             self.act_layers.append(ActivationLayer(args.act_type))
 
             if self.layer_aggr_type != 'dense':
                 for i in range(1, self.num_layers):
-                    self.gnn_layers.append(GNNLayer(args.hidden_size, args.hidden_size, args.aggr_type, args.att_type))
+                    self.gnn_layers.append(GNNLayer(args.hidden_size, args.hidden_size, args.aggr_type, args.conv_type))
                     self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
                     self.act_layers.append(ActivationLayer(args.act_type))
             else:
                 for i in range(1, self.num_layers):
-                    self.gnn_layers.append(GNNLayer(i * args.hidden_size, args.hidden_size, args.aggr_type, args.att_type))
+                    self.gnn_layers.append(GNNLayer(i * args.hidden_size, args.hidden_size, args.aggr_type, args.conv_type))
                     self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
                     self.act_layers.append(ActivationLayer(args.act_type))
         

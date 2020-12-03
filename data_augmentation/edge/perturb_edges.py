@@ -4,8 +4,9 @@ from .dataloader import DataLoader
 import torch
 import argparse
 import numpy as np
-from torch_geometric.utils import from_scipy_sparse_matrix, train_test_split_edges ,
+from torch_geometric.utils import from_scipy_sparse_matrix, train_test_split_edges, to_scipy_sparse_matrix
 from torch_geometric.nn import GCNConv, GAE
+from torch_geometric.data import Data
 import pickle
 import os.path as osp
 import traceback
@@ -16,19 +17,18 @@ __all__ = ['perturb_edges']
 CWD = osp.dirname(osp.abspath(__file__))
 ROOT = CWD + '/../..'
 
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--emb_size', type=int, default=16)
-    parser.add_argument('--hidden_size', type=int, default=32)
-    parser.add_argument('--epochs', type=int, default=200)
-    parser.add_argument('--seed', type=int, default=7)
-    parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
-    parser.add_argument('--val_frac', type=float, default=0.9)
-    parser.add_argument('--test_frac', type=float, default=0.1)
-    parser.add_argument('--criterion', type=str, default='roc')
-    parser.add_argument('--no_mask', type=bool, default=True)
-    args = parser.parse_args()
-    return args
+# def get_args():
+#     args = argparse.Namespace()
+#     args.emb_size = 16
+#     args.hidden_size = 32
+#     args.epochs = 200
+#     args.seed = 42
+#     args.lr = 0.01
+#     args.val_frac = 0.9
+#     args.test_frac = 0.1
+#     args.criterion = 'roc'
+#     args.no_mask = True
+#     return args
 
 # def perturb_edges(data, name, remove_pct, add_pct):
 #     if remove_pct == 0 and add_pct == 0:
@@ -84,7 +84,11 @@ def perturb_edges(data, name, remove_pct, add_pct, hidden_channels=16, epochs=40
     try:
         cached = pickle.load(open(f'{ROOT}/cache/edge/{name}_{remove_pct}_{add_pct}.pt', 'rb'))
         print(f'Use cached edge augmentation for dataset {name}')
-        data.edge_index = cached
+
+        if data.setting == 'inductive':
+            data.train_edge_index = cached
+        else:
+            data.edge_index = cached
         return
     except FileNotFoundError:
         try:
@@ -98,13 +102,19 @@ def perturb_edges(data, name, remove_pct, add_pct, hidden_channels=16, epochs=40
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    edge_index = deepcopy(data.edge_index)
-    data = train_test_split_edges(data, val_ratio=0.1, test_ratio=0)
-    num_features = data.ori_x.shape[1]
+
+    if data.setting == 'inductive':
+        train_data = Data(x=data.train_x, ori_x=data.ori_x, edge_index=data.train_edge_index, y=data.train_y)
+    else:
+        train_data = deepcopy(data)
+
+    edge_index = deepcopy(train_data.edge_index)
+    train_data = train_test_split_edges(train_data, val_ratio=0.1, test_ratio=0)
+    num_features = train_data.ori_x.shape[1]
     model = GAE(GCNEncoder(num_features, hidden_channels))
     model = model.to(device)
-    x = data.ori_x.to(device)
-    train_pos_edge_index = data.train_pos_edge_index.to(device)
+    x = train_data.ori_x.to(device)
+    train_pos_edge_index = train_data.train_pos_edge_index.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     best_val_auc = 0
@@ -121,7 +131,7 @@ def perturb_edges(data, name, remove_pct, add_pct, hidden_channels=16, epochs=40
         with torch.no_grad():
             z = model.encode(x, train_pos_edge_index)
 
-        auc, ap = model.test(z, data.val_pos_edge_index, data.val_neg_edge_index)
+        auc, ap = model.test(z, train_data.val_pos_edge_index, train_data.val_neg_edge_index)
         print('Val | Epoch: {:03d}, AUC: {:.4f}, AP: {:.4f}'.format(epoch, auc, ap))
         if auc > best_val_auc:
             best_val_auc = auc
@@ -131,7 +141,15 @@ def perturb_edges(data, name, remove_pct, add_pct, hidden_channels=16, epochs=40
 
     adj_orig = to_scipy_sparse_matrix(edge_index).asformat('csr')
     adj_pred = sample_graph_det(adj_orig, A_pred, remove_pct, add_pct)
-    data.edge_index, _ = from_scipy_sparse_matrix(adj_pred)
+
+    if data.setting == 'inductive':
+        data.train_edge_index, _ = from_scipy_sparse_matrix(adj_pred)
+    else:
+        data.edge_index, _ = from_scipy_sparse_matrix(adj_pred)
 
     pickle.dump((A_pred, adj_orig) ,open(f'{ROOT}/cache/edge/{name}.pt', 'wb'))
-    pickle.dump(data.edge_index, open(f'{ROOT}/cache/edge/{name}_{remove_pct}_{add_pct}.pt', 'wb'))
+
+    if data.setting == 'inductive':
+        pickle.dump(data.train_edge_index, open(f'{ROOT}/cache/edge/{name}_{remove_pct}_{add_pct}.pt', 'wb'))
+    else:
+        pickle.dump(data.edge_index, open(f'{ROOT}/cache/edge/{name}_{remove_pct}_{add_pct}.pt', 'wb'))

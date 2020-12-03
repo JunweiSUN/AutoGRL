@@ -33,7 +33,7 @@ class GNNLayer(nn.Module):
             self.conv = ARMAConv(in_channels, out_channels)
         elif self.conv_type == 'gin':
             self.conv = GINConv(nn.Sequential(nn.Linear(in_channels, out_channels), nn.ReLU(), nn.Linear(out_channels, out_channels)))
-        self.conv.aggr = self.aggr_type
+        self.conv.aggr = aggr_type
 
     def forward(self, x, edge_index, edge_weight=None):
         return self.conv(x, edge_index)
@@ -74,14 +74,16 @@ class ActivationLayer(nn.ModuleList):
             self.act = torch.nn.Tanh()
         elif act_type == 'relu':
             self.act = torch.nn.ReLU()
-        elif act_type == 'leaky_relu':
+        elif act_type == 'leaky-relu':
             self.act = torch.nn.LeakyReLU()
         elif act_type == 'prelu':
             self.act = torch.nn.PReLU()
         elif act_type == 'elu':
             self.act = torch.nn.ELU()
         elif act_type == 'identity':
-            self.act = lambda x:x
+            self.act = torch.nn.Identity()
+        else:
+            raise NotImplementedError(f'Not supported activation type {act_type}')
     
     def forward(self, x):
         return self.act(x)

@@ -99,9 +99,9 @@ def load_data(name, transform=None):
         data.test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
         data.test_mask[-500:] = True
 
-        data.train_edge_index = subgraph(data.train_mask, data.edge_index, relabel_nodes=True)
-        data.val_edge_index = subgraph(data.val_mask, data.edge_index, relabel_nodes=True)
-        data.val_edge_index = subgraph(data.val_mask, data.edge_index, relabel_nodes=True)
+        data.train_edge_index, _ = subgraph(data.train_mask, data.edge_index, relabel_nodes=True)
+        data.val_edge_index, _ = subgraph(data.val_mask, data.edge_index, relabel_nodes=True)
+        data.val_edge_index, _ = subgraph(data.val_mask, data.edge_index, relabel_nodes=True)
         data.train_x = data.x[data.train_mask]
         data.train_y = data.y[data.train_mask]
         data.val_x = data.x[data.val_mask]
@@ -109,6 +109,7 @@ def load_data(name, transform=None):
         data.test_x = data.x[data.test_mask]
         data.test_y = data.y[data.test_mask]
 
+        data.num_train_nodes = data.train_x.shape[0]
         data.task = 'sup' # simi-supervised
         data.setting = 'inductive' # transductive
         return data

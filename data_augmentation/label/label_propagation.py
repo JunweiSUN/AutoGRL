@@ -17,7 +17,7 @@ def label_propagation(data, name, alpha=0.99, max_iter=10):
     Label some nodes then add them to the training set.
     Only support undirected graphs.
     '''
-
+    assert data.setting == 'transductive'
     try:
         cached_train_mask, cached_y = pickle.load(open(f'{ROOT}/cache/label/{name}.pt', 'rb'))
         print(f'Use cached label augmentation with for dataset {name}')

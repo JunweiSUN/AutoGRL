@@ -8,22 +8,19 @@ import numpy as np
 
 class TransductiveTrainer: # transductive node classification trainer
 
-    def init_trainer(args, model, eval_steps=1, metric='acc'):
-        self.epochs = args.epochs
-        self.lr = args.lr
+    def init_trainer(self, model, epochs, lr, eval_steps=1, metric='acc'):
+        self.epochs = epochs
+        self.lr = lr
         self.eval_steps = eval_steps
         self.metric = metric
         self.model = model
-        if args.optim = 'adam':
-            self.optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=args.weight_decay)
-        elif args.optim = 'sgd':
-            self.optimizer = torch.optim.SGD(model.paparameters(), lr=self.lr, momentum=0.9, weight_decay=args.weight_decay)
+        self.optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=5e-4)
         self.evaluator = Evaluator(metric=self.metric)
-        self.best_val_score = 0
         self.best_model_parameters = None
         
     def train(self, data, verbose=False): # choose the epoch of best validation accuracy
         
+        best_val_score = 0
         for epoch in range(self.epochs):
             self.model.train()
             self.optimizer.zero_grad()
@@ -37,15 +34,17 @@ class TransductiveTrainer: # transductive node classification trainer
                     self.model.eval()
                     val_pred = self.model(data.x, data.edge_index)[data.val_mask].max(1)[1]
                     val_score = self.evaluator(data.y[data.val_mask], val_pred)
-                    if val_score > self.best_val_score:
-                        self.best_val_score = val_score
+                    if val_score > best_val_score:
+                        best_val_score = val_score
                         best_model_parameters = deepcopy(self.model.state_dict())
             
             if verbose:
-                print(f'Epoch: {epoch:03d} | train loss: {loss.item():.4f} | val acc: {val_score:.4f} | best val acc: {self.best_val_score:.4f}')
+                print(f'Epoch: {epoch:03d} | train loss: {loss.item():.4f} | val acc: {val_score:.4f} | best val acc: {best_val_score:.4f}')
 
         if self.best_model_parameters:
             self.model.load_state_dict(self.best_model_parameters)
+        
+        return best_val_score
 
     @torch.no_grad()
     def test(self, data, evaluator=None):
@@ -64,21 +63,20 @@ class TransductiveTrainer: # transductive node classification trainer
 
 class InductiveTrainer: # inductive node classification trainer
 
-    def init_trainer(args, model, eval_steps=1, metric='acc'):
-        self.epochs = args.epochs
-        self.lr = args.lr
+    def init_trainer(self, model, epochs, lr, eval_steps=1, metric='acc'):
+        self.epochs = epochs
+        self.lr = lr
         self.eval_steps = eval_steps
         self.metric = metric
         self.model = model
-        if args.optim = 'adam':
-            self.optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=args.weight_decay)
-        elif args.optim = 'sgd':
-            self.optimizer = torch.optim.SGD(model.paparameters(), lr=self.lr, momentum=0.9, weight_decay=args.weight_decay)
+        self.optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=5e-4)
         self.evaluator = Evaluator(metric=self.metric)
         self.best_val_acc = 0
         self.best_model_parameters = None
     
     def train(self, data, verbose=False):
+
+        best_val_score = 0
         for epoch in range(self.epochs):
             self.model.train()
             self.optimizer.zero_grad()
@@ -92,15 +90,17 @@ class InductiveTrainer: # inductive node classification trainer
                     self.model.eval()
                     val_pred = self.model(data.val_x, data.val_edge_index).max(1)[1]
                     val_score = self.evaluator(data.val_y, val_pred)
-                    if val_score > self.best_val_score:
-                        self.best_val_score = val_score
+                    if val_score > best_val_score:
+                        best_val_score = val_score
                         best_model_parameters = deepcopy(self.model.state_dict())
             
             if verbose:
-                print(f'Epoch: {epoch:03d} | train loss: {loss.item():.4f} | val acc: {val_score:.4f} | best val acc: {self.best_val_score:.4f}')
+                print(f'Epoch: {epoch:03d} | train loss: {loss.item():.4f} | val acc: {val_score:.4f} | best val acc: {best_val_score:.4f}')
 
         if self.best_model_parameters:
             self.model.load_state_dict(self.best_model_parameters)
+
+        return best_val_score
     
     @torch.no_grad()
     def test(self, data, evaluator=None):

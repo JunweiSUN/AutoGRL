@@ -34,7 +34,7 @@ def load_embedding(name, method):
 def save_embedding(embedding, name, method):
     pickle.dump(embedding, open(f'{ROOT}/cache/feature/{method}_{name}.pt', 'wb'))
 
-def spectral(data, name, embedding_dim=64):
+def spectral(data, name, embedding_dim=128):
     try:
         result = load_embedding(name, 'spectral')
         return result
@@ -46,26 +46,34 @@ def spectral(data, name, embedding_dim=64):
     from julia import Main
     Main.include(f'{CWD}/norm_spec.jl')
     print('Setting up spectral embedding')
-    data.edge_index = to_undirected(data.edge_index)
-    np_edge_index = np.array(data.edge_index.T)
 
-    N = data.num_nodes
-    row, col = data.edge_index
+    if data.setting == 'inductive':
+        N = data.num_train_nodes
+        edge_index = to_undirected(data.train_edge_index, num_nodes=data.num_train_nodes)
+    else:
+        N = data.num_nodes
+        edge_index = to_undirected(data.edge_index, num_nodes=data.num_nodes)
+
+    np_edge_index = np.array(edge_index.T)
+    row, col = edge_index
     adj = SparseTensor(row=row, col=col, sparse_sizes=(N, N))
     adj = adj.to_scipy(layout='csr')
 
-    result = torch.tensor(Main.main(adj, 128)).float()
+    result = torch.tensor(Main.main(adj, embedding_dim)).float()
     save_embedding(result, name, 'spectral')
     return result
 
-def node2vec(data, name, embedding_dim=64, epochs=20):
+def node2vec(data, name, embedding_dim=64, epochs=40):
     try:
         result = load_embedding(name, 'node2vec')
         return result
     except FileNotFoundError:
         print(f'cache/feature/node2vec_{name}.pt not found! Regenerating it now')
 
-    model = Node2Vec(data.edge_index, embedding_dim, walk_length=20, context_size=10, walks_per_node=10, num_negative_samples=1, sparse=True).to('cuda')
+    if data.setting == 'inductive':
+        model = Node2Vec(data.train_edge_index, embedding_dim, walk_length=20, context_size=10, walks_per_node=10, num_negative_samples=1, sparse=True).to('cuda')
+    else:
+        model = Node2Vec(data.edge_index, embedding_dim, walk_length=20, context_size=10, walks_per_node=10, num_negative_samples=1, sparse=True).to('cuda')
     loader = model.loader(batch_size=128, shuffle=True, num_workers=8)
     optimizer = torch.optim.SparseAdam(model.parameters(), lr=0.01)
 
@@ -80,7 +88,7 @@ def node2vec(data, name, embedding_dim=64, epochs=20):
             total_loss += loss.item()
         return total_loss / len(loader)
     
-    for epoch in range(1, epochs+1):
+    for epoch in range(1, epochs + 1):
         loss = train()
         print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}')
 
@@ -95,8 +103,12 @@ def svd(data, name, embedding_dim=64):
     except FileNotFoundError:
         print(f'cache/feature/svd_{name}.pt not found! Regenerating it now')
 
-    N = data.num_nodes
-    row, col = data.edge_index
+    if data.setting == 'inductive':
+        N = data.num_train_nodes
+        row, col = data.train_edge_index
+    else:
+        N = data.num_nodes
+        row, col = data.edge_index
     adj = SparseTensor(row=row, col=col, sparse_sizes=(N, N))
     adj = adj.to_scipy(layout='csc')
     ut, s, vt = sparsesvd(adj, embedding_dim)
@@ -113,7 +125,12 @@ def onehot(data, name):
         print(f'cache/feature/onehot_{name}.pt not found! Regenerating it now')
 
     assert data.x is None
-    result = torch.eye(data.num_nodes)
+
+    if data.setting == 'inductive':
+        result = torch.eye(data.num_train_nodes)
+    else:
+        result = torch.eye(data.num_nodes)
+    
     save_embedding(result, name, 'onehot')
     return result
 
@@ -125,6 +142,10 @@ def xavier(data, name, embedding_dim=64):
         print(f'cache/feature/xavier_{name}.pt not found! Regenerating it now')
 
     assert data.x is None
-    result = torch.nn.init.xavier_uniform_(torch.zeros((data.num_nodes, embedding_dim)))
+    if data.setting == 'inductive':
+        result = torch.nn.init.xavier_uniform_(torch.zeros((data.num_train_nodes, embedding_dim)))
+    else:
+        result = torch.nn.init.xavier_uniform_(torch.zeros((data.num_nodes, embedding_dim)))
+
     save_embedding(result, name, 'xavier')
     return result
