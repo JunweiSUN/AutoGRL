@@ -15,7 +15,7 @@ data_aug = {
     "remove-edges": [0, 10, 20, 30],
     "dropout-x": [0, 0.1, 0.4, 0.7],
     "dropout-nodes": [0, 0.1, 0.4, 0.7],
-    "label_propogation": [0, 1]
+    "label-propogation": [0, 1]
 }
 
 fe = {
@@ -50,7 +50,7 @@ def pruning_search_space_by_eda(data):
     if task == 'sup':
         _data_aug['label-propogation'].remove(1) # supervised task doesn't need LP
     if data.x is None:
-        _fe['embedding_type'].remove('none') # dataset with no feature must have a hand-crafted feature
+        _fe['embedding-type'].remove('none') # dataset with no feature must have a hand-crafted feature
     else:
         _fe['embedding-type'].remove('onehot')
         _fe['embedding-type'].remove('xavier') # we do not use one hot and xavier feature on dataset with feature

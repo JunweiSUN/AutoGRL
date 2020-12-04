@@ -20,17 +20,6 @@ def setup_seed(seed):
 
 def main(args):
     setup_seed(args.seed)
-    gbdt_params = {
-        'boosting_type': 'gbdt',
-        'objective': 'regression',
-        'metric': {'l2'},
-        'num_leaves': args.gbdt_leaves,
-        'learning_rate': args.gbdt_lr,
-        'feature_fraction': 0.9,
-        'bagging_fraction': 0.8,
-        'bagging_freq': 5,
-        'verbose': 0
-    }
 
     # build search space
     data = load_data(args.dataset)
@@ -51,13 +40,28 @@ def main(args):
 
     # init training data for GBDT
     sampled_archs = sampler.sample(args.n)
-    for arch in sampled_archs:
+
+    i = 0
+    while i < len(sampled_archs):
+        arch = sampled_archs[i]
         data = sampler.load_data(arch)
-        model = sampler.build_model(arch, data.x.shape[1], int(max(data.y)) + 1)
-        trainer.init_trainer(model, arch[7], arch[6])
-        val_score = trainer.train(data)
+        try:
+            model = sampler.build_model(arch, data.x.shape[1], int(max(data.y)) + 1)
+            trainer.init_trainer(model, arch[7], arch[6])
+            val_score = trainer.train(data)
+        except RuntimeError as e:
+            if "cuda" in str(e) or "CUDA" in str(e):     # CUDA OOM, sample another arch
+                print(e)
+                sampled_archs += sampler.sample(1)
+                i += 1
+                continue
+            else:
+                raise e
+
+        i += 1
         archs.append(arch)
         val_scores.append(val_score)
+        print(arch, f'real val score: {val_score}')
         print(f'Number of evaluated archs: {len(archs)}')
 
     # train GBDT predictor
@@ -92,14 +96,28 @@ def main(args):
         sampled_archs, predicted_val_scores = list(sampled_archs), list(predicted_val_scores)
 
         # evaluate top k archs
-        for i, arch in enumerate(sampled_archs):
+        i = 0
+        while i < len(sampled_archs):
+            arch = sampled_archs[i]
             data = sampler.load_data(arch)
-            model = sampler.build_model(arch, data.x.shape[1], int(max(data.y)) + 1)
-            trainer.init_trainer(model, arch[7], arch[6])
-            val_score = trainer.train(data)
+            try:
+                model = sampler.build_model(arch, data.x.shape[1], int(max(data.y)) + 1)
+                trainer.init_trainer(model, arch[7], arch[6])
+                val_score = trainer.train(data)
+                predicted_val_score = predicted_val_scores[i]
+            except RuntimeError as e:
+                if "cuda" in str(e) or "CUDA" in str(e):     # CUDA OOM, sample another arch
+                    print(e)
+                    sampled_archs += sampler.sample(1)
+                    i += 1
+                    continue
+                else:
+                    raise e
             
+            i += 1
             archs.append(arch)
             val_scores.append(val_score)
+            print(arch, f'predicted val score: {predicted_val_score} | real val score: {val_score}')
             print(f'Number of evaluated archs: {len(archs)}')
             if i + 1 >= args.k:
                 break
@@ -111,18 +129,30 @@ def main(args):
         archs, val_scores = list(archs), list(val_scores)
 
         # evaluate top k_test archs on test set
-        for i, arch in enumerate(archs):
+        i = 0
+        while i < len(archs):
+            arch = archs[i]
             data = sampler.load_data(arch)
-            model = sampler.build_model(arch, data.x.shape[1], int(max(data.y)) + 1)
-            trainer.init_trainer(model, arch[7], arch[6])
-            val_score = trainer.train(data)
-            test_score = trainer.test(data)
+            try:
+                model = sampler.build_model(arch, data.x.shape[1], int(max(data.y)) + 1)
+                trainer.init_trainer(model, arch[7], arch[6])
+                val_score = trainer.train(data)
+                test_score = trainer.test(data)
+            except RuntimeError as e:
+                if "cuda" in str(e) or "CUDA" in str(e):     # CUDA OOM, sample another arch
+                    print(e)
+                    i += 1
+                    continue
+                else:
+                    raise e
             
+            i += 1
             top_archs.append(arch)
             top_val_scores.append(val_score)
             top_test_scores.append(test_score)
             
-            print(f'Testing... arch {i + 1} | val score {val_score} | test score {test_score}')
+            print(arch)
+            print(f'Testing... round {iter_round} | arch top {i + 1} | real val score {val_score} | real test score {test_score}')
 
             if i + 1 >= args.k_test:
                 break
@@ -147,8 +177,6 @@ if __name__ == '__main__':
     parser.add_argument('--p', type=int, default=5, help='pruning features with lowest p shap values')
     parser.add_argument('--k_random', type=int, default=200, help='number of random archs to evaluate in each round')
     parser.add_argument('--k_test', type=int, default=10, help='number of archs that will be evaluated on test set')
-    parser.add_argument('--gbdt_num_boost_round', type=int, default=100, help='GBDT argument')
     parser.add_argument('--gbdt_lr', type=float, default=0.05, help='GBDT argument')
-    parser.add_argument('--gbdt_leaves', type=int, default=31, help='GBDT argument')
     args = parser.parse_args()
     main(args)
