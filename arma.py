@@ -15,6 +15,7 @@ import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, ChebConv, ARMAConv
 from data_prepare import load_data
 from feature_engineering import get_embedding
+import pickle
 
 
 parser = argparse.ArgumentParser()
@@ -77,17 +78,19 @@ def test():
             pred = logits[mask].max(1)[1]
             acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
             accs.append(acc)
-    return accs
+        test_logits = logits[data.test_mask]
+    return accs, test_logits
 
 all_test_accs = []
 for run in range(10):
     best_val_acc = test_acc = 0
     for epoch in range(1, 500):
         train()
-        train_acc, val_acc, tmp_test_acc = test()
+        (train_acc, val_acc, tmp_test_acc), z = test()
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             test_acc = tmp_test_acc
+            pickle.dump((z, data.y[data.test_mask]), open(f'embeddings/{args.dataset}_arma.pt', 'wb'))
         log = 'Epoch: {:03d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
         print(log.format(epoch, train_acc, best_val_acc, test_acc))
     all_test_accs.append(test_acc)

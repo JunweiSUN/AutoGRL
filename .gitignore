@@ -137,6 +137,7 @@ cora/
 citeseer/
 cache/
 catboost_info/
+embeddings/
 
 # vscode
 .vscode/

@@ -3,6 +3,7 @@ from nas.models import GNNModel
 import argparse
 import random
 import torch
+from itertools import product
 
 class Sampler:
     def __init__(self, name, search_space):
@@ -23,12 +24,41 @@ class Sampler:
             for k, v in self.ss.items():
                 arch.append(random.choice(v))
             combine_str = '_'.join([self.name] + [str(e) for e in arch])
+
+            if combine_str in self.hashs:
+                continue
+            
+            # limit model size for multi-head gat
+            conv_type = arch[13]
+            hidden_size = arch[11]
+            if conv_type.startswith('gat'):
+                heads = int(conv_type.split('-')[1])
+                if heads >= 4 and hidden_size >= 64:
+                    continue
+
+            self.hashs[combine_str] = None
+            archs.append(arch)
+            i += 1
+        
+        return archs
+    
+    def grid_sample(self, n):
+        '''
+        grid search of the search space
+        '''
+        archs = []
+        i = 0
+        whole_ss = list(product(*self.ss.values()))
+        while i < n:
+            arch = list(whole_ss[i])
+            combine_str = '_'.join([self.name] + [str(e) for e in arch])
             if combine_str not in self.hashs:
                 self.hashs[combine_str] = None
                 archs.append(arch)
                 i += 1
-        
         return archs
+
+
 
     def update_search_space(self, search_space):
         self.ss = search_space

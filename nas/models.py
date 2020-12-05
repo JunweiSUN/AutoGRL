@@ -30,24 +30,24 @@ class GNNModel(nn.Module):
         self.norm_layers = nn.ModuleList()
         self.act_layers = nn.ModuleList()
 
-        if self.gnn_layers == 1:
-            self.gnn_layers.append(GNNLayer(self.in_channels, self.num_class, args.aggr_type, args.conv_type))
-        else:
-            self.gnn_layers.append(GNNLayer(self.in_channels, args.hidden_size, args.aggr_type, args.conv_type))
-            self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
-            self.act_layers.append(ActivationLayer(args.act_type))
+        # first conv layer
+        self.gnn_layers.append(GNNLayer(self.in_channels, args.hidden_size, args.aggr_type, args.conv_type))
+        self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
+        self.act_layers.append(ActivationLayer(args.act_type))
 
-            if self.layer_aggr_type != 'dense':
-                for i in range(1, self.num_layers):
-                    self.gnn_layers.append(GNNLayer(args.hidden_size, args.hidden_size, args.aggr_type, args.conv_type))
-                    self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
-                    self.act_layers.append(ActivationLayer(args.act_type))
-            else:
-                for i in range(1, self.num_layers):
-                    self.gnn_layers.append(GNNLayer(i * args.hidden_size, args.hidden_size, args.aggr_type, args.conv_type))
-                    self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
-                    self.act_layers.append(ActivationLayer(args.act_type))
+        # intermediate layers
+        if self.layer_aggr_type != 'dense':
+            for i in range(1, self.num_layers):
+                self.gnn_layers.append(GNNLayer(args.hidden_size, args.hidden_size, args.aggr_type, args.conv_type))
+                self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
+                self.act_layers.append(ActivationLayer(args.act_type))
+        else:
+            for i in range(1, self.num_layers):
+                self.gnn_layers.append(GNNLayer(i * args.hidden_size, args.hidden_size, args.aggr_type, args.conv_type))
+                self.norm_layers.append(NormLayer(args.norm_type, args.hidden_size))
+                self.act_layers.append(ActivationLayer(args.act_type))
         
+        # last (output) layer
         if self.layer_aggr_type == 'jk':
             self.out_lin = nn.Linear(self.num_layers * args.hidden_size, self.num_class)
         else:
@@ -62,6 +62,10 @@ class GNNModel(nn.Module):
         gnn_layer = self.gnn_layers[0]
         norm_layer = self.norm_layers[0]
         act_layer = self.act_layers[0]
+
+
+        # conv on layer 1
+        x = F.dropout(x, p=self.dropout, training=self.training)
         h = gnn_layer(x, edge_index)
         if self.act_first:
             h = act_layer(h)
@@ -73,6 +77,7 @@ class GNNModel(nn.Module):
 
         hs.append(h)
     
+        # conv on intermediate layers
         for i in range(1, self.num_layers):
             gnn_layer = self.gnn_layers[i]
             norm_layer = self.norm_layers[i]
@@ -87,14 +92,15 @@ class GNNModel(nn.Module):
 
             if self.layer_aggr_type == 'res':
                 h = h + hs[-1]
+
             if self.act_first:
                 h = act_layer(h)
                 h = norm_layer(h)
             else:
                 h = act_layer(h)
                 h = norm_layer(h)
-            h = F.dropout(h, p=self.dropout, training=self.training)
 
+            h = F.dropout(h, p=self.dropout, training=self.training)
             hs.append(h)
 
         if self.layer_aggr_type == 'jk':

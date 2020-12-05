@@ -24,12 +24,12 @@ fe = {
 
 hpo = {
     "lr": [0.1, 0.005, 0.001, 0.0005],
-    "epochs": [200, 400, 800],
+    "epochs": [500],
     "dropout": [0, 0.2, 0.5, 0.8],
     "norm-type": ['bn', 'ln', 'in', 'none'],
     "act-type": ['tanh', 'relu', 'leaky-relu', 'prelu', 'elu', 'identity'],
-    "hidden_size": [16, 32, 64, 128, 256],
-    "act-first": [0, 1]
+    "hidden_size": [8, 16, 32, 64, 128, 256],
+    "act-first": [0]
 }
 
 nas = {
