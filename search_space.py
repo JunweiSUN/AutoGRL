@@ -55,6 +55,8 @@ def pruning_search_space_by_eda(data):
         _fe['embedding-type'].remove('onehot')
         _fe['embedding-type'].remove('xavier') # we do not use one hot and xavier feature on dataset with feature
                                                # since they do not provide any extra infomation
+    if data.setting == 'inductive': # no feature engineering for inductive task
+        _fe['embedding-type'] = ['none']
 
     ss = {} # search space
     ss.update(_data_aug)

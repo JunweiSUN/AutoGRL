@@ -1,34 +1,47 @@
 import argparse
+
+parser = argparse.ArgumentParser(description='AutoGRL')
+parser.add_argument('--dataset', type=str, default='cora')
+parser.add_argument('--seed', type=int, default=0, help='random seed')
+parser.add_argument('--iterations', type=int, default=3, help='GBDT iteration rounds')
+parser.add_argument('--n', type=int, default=500, help='number of initial archs')
+parser.add_argument('--m', type=int, default=10000, help='number of archs to predict in each round')
+parser.add_argument('--k', type=int, default=500, help='number of top archs to evaluate in each round')
+parser.add_argument('--p', type=int, default=5, help='pruning features with lowest p shap values')
+parser.add_argument('--k_random', type=int, default=200, help='number of random archs to evaluate in each round')
+parser.add_argument('--k_test', type=int, default=10, help='number of archs that will be evaluated on test set')
+parser.add_argument('--gbdt_lr', type=float, default=0.05, help='GBDT argument')
+args = parser.parse_args()
+
+import random
+random.seed(args.seed)
+import numpy as np
+np.random.seed(args.seed)
+import torch
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed_all(args.seed)
+torch.backends.cudnn.deterministic = True
+
 from search_space import pruning_search_space_by_eda, pruning_search_space_by_shap
 from data_prepare import load_data
 from utils import Sampler
 from utils import TransductiveTrainer, InductiveTrainer
-import numpy as np
 import pandas as pd
 import lightgbm as lgb
 import pickle
-import torch
-import random
 from catboost import CatBoostRegressor, Pool
 
-def setup_seed(seed):
-     torch.manual_seed(seed)
-     torch.cuda.manual_seed_all(seed)
-     np.random.seed(seed)
-     random.seed(seed)
-     torch.backends.cudnn.deterministic = True
-
 def main(args):
-    setup_seed(args.seed)
 
     # build search space
-    data = load_data(args.dataset)
+    data = load_data(args.dataset, args.seed)
     ss, _ = pruning_search_space_by_eda(data)
 
-    if data.setting == 'inductivate':
+    if data.setting == 'inductive':
         trainer = InductiveTrainer()
     else:
         trainer = TransductiveTrainer()
+
     sampler = Sampler(args.dataset, ss)
 
     archs = []
@@ -81,7 +94,6 @@ def main(args):
         # pruning search space
         ss = pruning_search_space_by_shap(archs, gbdt_model, ss, args.p)
         sampler.update_search_space(ss)
-        
 
         # predict some archs
         sampled_archs = sampler.sample(args.m)
@@ -150,7 +162,7 @@ def main(args):
             top_archs.append(arch)
             top_val_scores.append(val_score)
             top_test_scores.append(test_score)
-            
+
             print(arch)
             print(f'Testing... round {iter_round} | arch top {i + 1} | real val score {val_score} | real test score {test_score}')
 
@@ -166,17 +178,4 @@ def main(args):
 
         pickle.dump((ss, sampler, trainer, archs, val_scores, gbdt_model, sampled_archs, predicted_val_scores, top_val_scores, top_test_scores), open(f'cache/gbdt/{args.dataset}_seed{args.seed}_round{iter_round}.pt', 'wb'))
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='AutoGRL')
-    parser.add_argument('--dataset', type=str, default='cora')
-    parser.add_argument('--seed', type=int, default=0, help='random seed')
-    parser.add_argument('--iterations', type=int, default=3, help='GBDT iteration rounds')
-    parser.add_argument('--n', type=int, default=500, help='number of initial archs')
-    parser.add_argument('--m', type=int, default=10000, help='number of archs to predict in each round')
-    parser.add_argument('--k', type=int, default=500, help='number of top archs to evaluate in each round')
-    parser.add_argument('--p', type=int, default=5, help='pruning features with lowest p shap values')
-    parser.add_argument('--k_random', type=int, default=200, help='number of random archs to evaluate in each round')
-    parser.add_argument('--k_test', type=int, default=10, help='number of archs that will be evaluated on test set')
-    parser.add_argument('--gbdt_lr', type=float, default=0.05, help='GBDT argument')
-    args = parser.parse_args()
-    main(args)
+main(args)

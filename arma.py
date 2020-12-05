@@ -12,7 +12,7 @@ import argparse
 import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
-from torch_geometric.nn import GCNConv, ChebConv  # noqa
+from torch_geometric.nn import GCNConv, ChebConv, ARMAConv
 from data_prepare import load_data
 from feature_engineering import get_embedding
 
@@ -28,10 +28,16 @@ if data.x is None:
 class Net(torch.nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = GCNConv(data.x.shape[1], 128, cached=False)
-        self.conv2 = GCNConv(128, int(max(data.y)) + 1, cached=False)
+
+        self.conv1 = ARMAConv(data.x.shape[1], 16, num_stacks=3,
+                              num_layers=2, dropout=0.25)
+
+        self.conv2 = ARMAConv(16, int(max(data.y)) + 1, num_stacks=3,
+                              num_layers=2, dropout=0.25,
+                              act=lambda x: x)
 
     def forward(self, x, edge_index):
+        x = F.dropout(x, training=self.training)
         x = F.relu(self.conv1(x, edge_index))
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
@@ -40,10 +46,7 @@ class Net(torch.nn.Module):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model, data = Net().to(device), data.to(device)
-optimizer = torch.optim.Adam([
-    dict(params=model.conv1.parameters(), weight_decay=5e-4),
-    dict(params=model.conv2.parameters(), weight_decay=0)
-], lr=0.01)  # Only perform weight-decay on first convolution.
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 
 
 def train():

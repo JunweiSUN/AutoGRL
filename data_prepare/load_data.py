@@ -11,11 +11,13 @@ import random
 
 __all__ = ['load_data']
 
-def load_data(name, transform=None):
+def load_data(name, seed, transform=None):
     '''
     Load data from files and return a pytorch geometric `Data` object
     '''
+    random.seed(seed) # make sure that the split of data is the same
     ROOT = osp.dirname(osp.abspath(__file__)) + '/..'
+
     if name in ['cora', 'citeseer', 'pubmed']:   # datasets for transductive node classifiction
         data = Planetoid(osp.join(ROOT, 'data'), name, transform=transform)[0]
         data.task = 'semi' # simi-supervised
@@ -40,6 +42,7 @@ def load_data(name, transform=None):
     elif name in ['usa-airports']:
         try:
             data = pickle.load(open(osp.join(ROOT, 'data', name, 'data.pkl'), 'rb'))
+            return data
         except FileNotFoundError:
             print('Data not found. Re-generating...')
         nx_graph = nx.read_edgelist(osp.join(ROOT, 'data', name, 'edges.txt'))
@@ -101,7 +104,7 @@ def load_data(name, transform=None):
 
         data.train_edge_index, _ = subgraph(data.train_mask, data.edge_index, relabel_nodes=True)
         data.val_edge_index, _ = subgraph(data.val_mask, data.edge_index, relabel_nodes=True)
-        data.val_edge_index, _ = subgraph(data.val_mask, data.edge_index, relabel_nodes=True)
+        data.test_edge_index, _ = subgraph(data.test_mask, data.edge_index, relabel_nodes=True)
         data.train_x = data.x[data.train_mask]
         data.train_y = data.y[data.train_mask]
         data.val_x = data.x[data.val_mask]
@@ -116,6 +119,3 @@ def load_data(name, transform=None):
 
     else:
         raise NotImplementedError('Not supported dataset.')
-
-
-load_data('wikics')

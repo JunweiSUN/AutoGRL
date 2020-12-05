@@ -75,7 +75,6 @@ class InductiveTrainer: # inductive node classification trainer
         self.best_model_parameters = None
     
     def train(self, data, verbose=False):
-
         best_val_score = 0
         for epoch in range(self.epochs):
             self.model.train()
@@ -106,7 +105,7 @@ class InductiveTrainer: # inductive node classification trainer
     def test(self, data, evaluator=None):
         self.model.eval()
         test_pred = self.model(data.test_x, data.test_edge_index).max(1)[1]
-
+        
         if evaluator:
             assert type(evaluator) == ogb.nodeproppred.Evaluator
             test_score = evaluator.eval({
