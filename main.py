@@ -4,11 +4,10 @@ parser = argparse.ArgumentParser(description='AutoGRL')
 parser.add_argument('--dataset', type=str, default='cora')
 parser.add_argument('--seed', type=int, default=0, help='random seed')
 parser.add_argument('--iterations', type=int, default=3, help='GBDT iteration rounds')
-parser.add_argument('--n', type=int, default=500, help='number of initial archs')
-parser.add_argument('--m', type=int, default=10000, help='number of archs to predict in each round')
-parser.add_argument('--k', type=int, default=500, help='number of top archs to evaluate in each round')
+parser.add_argument('--n', type=int, default=5, help='number of initial archs')
+parser.add_argument('--m', type=int, default=10, help='number of archs to predict in each round')
+parser.add_argument('--k', type=int, default=5, help='number of top archs to evaluate in each round')
 parser.add_argument('--p', type=int, default=5, help='pruning features with lowest p shap values')
-parser.add_argument('--k_random', type=int, default=200, help='number of random archs to evaluate in each round')
 parser.add_argument('--k_test', type=int, default=10, help='number of archs that will be evaluated on test set')
 parser.add_argument('--gbdt_lr', type=float, default=0.05, help='GBDT argument')
 args = parser.parse_args()
@@ -71,11 +70,12 @@ def main(args):
             else:
                 raise e
 
-        i += 1
         archs.append(arch)
         val_scores.append(val_score)
         print(arch, f'real val score: {val_score}')
         print(f'Number of evaluated archs: {len(archs)}')
+
+        i += 1
 
     # train GBDT predictor
     for iter_round in range(1, args.iterations + 1):
@@ -126,13 +126,15 @@ def main(args):
                 else:
                     raise e
             
-            i += 1
             archs.append(arch)
             val_scores.append(val_score)
             print(arch, f'predicted val score: {predicted_val_score} | real val score: {val_score}')
             print(f'Number of evaluated archs: {len(archs)}')
+
             if i + 1 >= args.k:
                 break
+
+            i += 1
         
         # sort all the evaluated archs
         zipped = zip(archs, val_scores)
@@ -149,7 +151,9 @@ def main(args):
                 model = sampler.build_model(arch, data.x.shape[1], int(max(data.y)) + 1)
                 trainer.init_trainer(model, arch[7], arch[6])
                 val_score = trainer.train(data)
-                test_score = trainer.test(data)
+                test_score, z = trainer.test(data, return_logits=True)
+                pickle.dump((z, data.y[data.test_mask]), open(f'embeddings/{args.dataset}_AutoGRL-round{iter_round}-top{i + 1}.pt', 'wb'))
+                
             except RuntimeError as e:
                 if "cuda" in str(e) or "CUDA" in str(e):     # CUDA OOM, sample another arch
                     print(e)
@@ -158,7 +162,7 @@ def main(args):
                 else:
                     raise e
             
-            i += 1
+            
             top_archs.append(arch)
             top_val_scores.append(val_score)
             top_test_scores.append(test_score)
@@ -166,8 +170,10 @@ def main(args):
             print(arch)
             print(f'Testing... round {iter_round} | arch top {i + 1} | real val score {val_score} | real test score {test_score}')
 
-            if i + 1 >= args.k_test:
+            if i + 1 >= args.k_test: # only test top k_test models for every round
                 break
+            
+            i += 1
         
         zipped = zip(top_val_scores, top_test_scores)
         zipped = sorted(zipped, key=lambda e: e[0], reverse=True)

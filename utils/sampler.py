@@ -27,14 +27,6 @@ class Sampler:
 
             if combine_str in self.hashs:
                 continue
-            
-            # limit model size for multi-head gat
-            conv_type = arch[13]
-            hidden_size = arch[11]
-            if conv_type.startswith('gat'):
-                heads = int(conv_type.split('-')[1])
-                if heads >= 4 and hidden_size >= 64:
-                    continue
 
             self.hashs[combine_str] = None
             archs.append(arch)

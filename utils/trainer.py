@@ -47,9 +47,10 @@ class TransductiveTrainer: # transductive node classification trainer
         return best_val_score
 
     @torch.no_grad()
-    def test(self, data, evaluator=None):
+    def test(self, data, return_logits=False, evaluator=None):
         self.model.eval()
-        test_pred = self.model(data.x, data.edge_index)[data.test_mask].max(1)[1]
+        test_logits = self.model(data.x, data.edge_index)[data.test_mask]
+        test_pred = test_logits.max(1)[1]
 
         if evaluator:
             assert type(evaluator) == ogb.nodeproppred.Evaluator
@@ -59,7 +60,12 @@ class TransductiveTrainer: # transductive node classification trainer
             })[self.metric]
         else:
             test_score = self.evaluator(data.y[data.test_mask], test_pred)
-        return test_score
+
+        if return_logits:
+            return test_score, test_logits
+        else:
+            return test_score
+
 
 class InductiveTrainer: # inductive node classification trainer
 
@@ -102,9 +108,10 @@ class InductiveTrainer: # inductive node classification trainer
         return best_val_score
     
     @torch.no_grad()
-    def test(self, data, evaluator=None):
+    def test(self, data, return_logits=False, evaluator=None):
         self.model.eval()
-        test_pred = self.model(data.test_x, data.test_edge_index).max(1)[1]
+        test_logits = self.model(data.test_x, data.test_edge_index)
+        test_pred = test_logits.max(1)[1]
         
         if evaluator:
             assert type(evaluator) == ogb.nodeproppred.Evaluator
@@ -114,4 +121,8 @@ class InductiveTrainer: # inductive node classification trainer
             })[self.metric]
         else:
             test_score = self.evaluator(data.test_y, test_pred)
-        return test_score
+        
+        if return_logits:
+            return test_score, test_logits
+        else:
+            return test_score
