@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from .layers import GNNLayer, NormLayer, ActivationLayer
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import APPNP
 __all__ = 'GNNModel'
 
 class GNNModel(nn.Module):
@@ -16,6 +16,7 @@ class GNNModel(nn.Module):
         self.hidden_size = args.hidden_size
         self.num_layers = args.num_layers
         self.layer_aggr_type = args.layer_aggr_type
+        self.conv_type = args.conv_type
         self.norm_type = args.norm_type
         self.dropout = args.dropout
         self.act_first = args.act_first
@@ -51,6 +52,10 @@ class GNNModel(nn.Module):
             self.out_lin = nn.Linear(self.num_layers * args.hidden_size, self.num_class)
         else:
             self.out_lin = nn.Linear(args.hidden_size, self.num_class)
+
+        if self.conv_type == 'appnp':
+            self.prop = APPNP(10, 0.1)
+        
 
     def forward(self, x, edge_index):
         hs = []
@@ -96,5 +101,8 @@ class GNNModel(nn.Module):
             out = self.out_lin(torch.cat(hs, dim=-1))
         else:
             out = self.out_lin(hs[-1])
+        
+        if self.conv_type == 'appnp':
+            out = self.prop(out, edge_index)
         
         return F.log_softmax(out, dim=1)

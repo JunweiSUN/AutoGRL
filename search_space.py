@@ -24,8 +24,8 @@ fe = {
 
 hpo = {
     "lr": [0.1, 0.005, 0.001, 0.0005],
-    "epochs": [100, 200, 400, 800],
-    "dropout": [0, 0.1, 0.4, 0.7],
+    "epochs": [200, 400, 800],
+    "dropout": [0, 0.2, 0.5, 0.8],
     "norm-type": ['bn', 'ln', 'in', 'none'],
     "act-type": ['tanh', 'relu', 'leaky-relu', 'prelu', 'elu', 'identity'],
     "hidden_size": [16, 32, 64, 128, 256],
@@ -33,7 +33,7 @@ hpo = {
 }
 
 nas = {
-    "conv-type": ['gat-1', 'gat-2', 'gat-4', 'gat-8', 'gcn', 'sage', 'cheb', 'tag', 'arma', 'gin'],
+    "conv-type": ['gat-1', 'gat-2', 'gat-4', 'gat-8', 'gcn', 'sage', 'cheb', 'tag', 'arma', 'gin', 'appnp'],
     "aggr-type": ['add', 'mean', 'max'],
     "layer-aggr-type": ['plain', 'res', 'jk', 'dense'],
     "num-layers": [1, 2, 3, 4, 5, 6, 7, 8]

@@ -11,6 +11,16 @@ import math
 
 __all__ = ['GNNLayer', 'NormLayer', 'ActivationLayer']
 
+class LinearConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(LinearConv, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.conv = nn.Linear(in_channels, out_channels)
+
+    def forward(self, x, edge_index):
+        return self.conv(x)
+
 class GNNLayer(nn.Module):
     def __init__(self, in_channels, out_channels, aggr_type, conv_type):
         super(GNNLayer, self).__init__()
@@ -33,6 +43,9 @@ class GNNLayer(nn.Module):
             self.conv = ARMAConv(in_channels, out_channels)
         elif self.conv_type == 'gin':
             self.conv = GINConv(nn.Sequential(nn.Linear(in_channels, out_channels), nn.ReLU(), nn.Linear(out_channels, out_channels)))
+        elif self.conv_type == 'appnp':
+            self.conv = LinearConv(in_channels, out_channels)
+
         self.conv.aggr = aggr_type
 
     def forward(self, x, edge_index, edge_weight=None):
