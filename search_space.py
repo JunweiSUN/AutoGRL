@@ -36,7 +36,7 @@ nas = {
     "conv-type": ['gat-1', 'gat-2', 'gat-4', 'gat-8', 'gcn', 'sage', 'cheb', 'tag', 'arma', 'gin', 'appnp'],
     "aggr-type": ['add', 'mean', 'max'],
     "layer-aggr-type": ['plain', 'res', 'jk', 'dense'],
-    "num-layers": [1, 2, 3, 4, 5, 6, 7, 8]
+    "num-layers": [1, 2, 3, 4]
 }
 
 def pruning_search_space_by_eda(data):

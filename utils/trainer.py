@@ -21,6 +21,7 @@ class TransductiveTrainer: # transductive node classification trainer
     def train(self, data, verbose=False): # choose the epoch of best validation accuracy
         
         best_val_score = 0
+        best_performance = 0
         for epoch in range(self.epochs):
             self.model.train()
             self.optimizer.zero_grad()
@@ -33,9 +34,13 @@ class TransductiveTrainer: # transductive node classification trainer
                 with torch.no_grad():
                     self.model.eval()
                     val_pred = self.model(data.x, data.edge_index)[data.val_mask].max(1)[1]
+                    # test_pred = self.model(data.x, data.edge_index)[data.test_mask].max(1)[1]
                     val_score = self.evaluator(data.y[data.val_mask], val_pred)
+                    # test_score = self.evaluator(data.y[data.test_mask], test_pred)
                     if val_score > best_val_score:
                         best_val_score = val_score
+                        # if test_score > best_performance:
+                            # best_performance = test_score
                         best_model_parameters = deepcopy(self.model.state_dict())
             
             if verbose:
@@ -82,6 +87,7 @@ class InductiveTrainer: # inductive node classification trainer
     
     def train(self, data, verbose=False):
         best_val_score = 0
+        # best_performance = 0
         for epoch in range(self.epochs):
             self.model.train()
             self.optimizer.zero_grad()
@@ -94,9 +100,13 @@ class InductiveTrainer: # inductive node classification trainer
                 with torch.no_grad():
                     self.model.eval()
                     val_pred = self.model(data.val_x, data.val_edge_index).max(1)[1]
+                    # test_pred = self.model(data.test_x, data.test_edge_index).max(1)[1]
                     val_score = self.evaluator(data.val_y, val_pred)
+                    # test_score = self.evaluator(data.test_y, test_pred)
                     if val_score > best_val_score:
                         best_val_score = val_score
+                        # if test_score > best_performance:
+                        #     best_performance = test_score
                         best_model_parameters = deepcopy(self.model.state_dict())
             
             if verbose:

@@ -177,10 +177,10 @@ def main(args):
         
         zipped = zip(top_val_scores, top_test_scores)
         zipped = sorted(zipped, key=lambda e: e[0], reverse=True)
-        best_val_score, best_test_score = zipped[0][0], zipped[0][1]
+        best_val_score, corr_test_score = zipped[0][0], zipped[0][1]
 
         # logging
-        print(f'iteration {iter_round} | best val score {best_val_score} | corresponding test score {best_test_score}')
+        print(f'iteration {iter_round} | best val score {best_val_score} | corresponding test score {corr_test_score} | best test score {max(top_test_scores)}')
 
         pickle.dump((ss, sampler, trainer, archs, val_scores, gbdt_model, sampled_archs, predicted_val_scores, top_val_scores, top_test_scores), open(f'cache/gbdt/{args.dataset}_seed{args.seed}_round{iter_round}.pt', 'wb'))
 
