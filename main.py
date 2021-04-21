@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 
 parser = argparse.ArgumentParser(description='AutoGRL')
 parser.add_argument('--dataset', type=str, default='cora')
@@ -79,7 +80,7 @@ def main(args):
 
     # train GBDT predictor
     for iter_round in range(1, args.iterations + 1):
-        print(f'Iteration round {iter_round}')
+        print(f'Iteration round {iter_round}, ReTraining model and sampling archs...', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         # train GBDT
         X = [[str(e) for e in row] for row in archs]
         y = np.array(val_scores)
@@ -107,6 +108,7 @@ def main(args):
         sampled_archs, predicted_val_scores = zip(*zipped)
         sampled_archs, predicted_val_scores = list(sampled_archs), list(predicted_val_scores)
 
+        print(f'Iteration round {iter_round}, evaluating top k archs on valid set', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         # evaluate top k archs
         i = 0
         while i < len(sampled_archs):
@@ -142,6 +144,7 @@ def main(args):
         archs, val_scores = zip(*zipped)
         archs, val_scores = list(archs), list(val_scores)
 
+        print(f'Iteration round {iter_round}, evaluating top k_test archs on test set', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         # evaluate top k_test archs on test set
         i = 0
         while i < len(archs):
@@ -168,7 +171,7 @@ def main(args):
             top_test_scores.append(test_score)
 
             print(arch)
-            print(f'Testing... round {iter_round} | arch top {i + 1} | real val score {val_score} | real test score {test_score}')
+            print(f'Testing... round {iter_round} | arch top {i + 1} | real val score {val_score} | real test score {test_score}', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
             if i + 1 >= args.k_test: # only test top k_test models for every round
                 break
@@ -180,7 +183,7 @@ def main(args):
         best_val_score, corr_test_score = zipped[0][0], zipped[0][1]
 
         # logging
-        print(f'iteration {iter_round} | best val score {best_val_score} | corresponding test score {corr_test_score} | best test score {max(top_test_scores)}')
+        print(f'Iteration {iter_round} | best val score {best_val_score} | corresponding test score {corr_test_score} | best test score {max(top_test_scores)}', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
         pickle.dump((ss, sampler, trainer, archs, val_scores, gbdt_model, sampled_archs, predicted_val_scores, top_val_scores, top_test_scores), open(f'cache/gbdt/{args.dataset}_seed{args.seed}_round{iter_round}.pt', 'wb'))
 
