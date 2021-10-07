@@ -20,7 +20,7 @@ def load_data(name, seed, transform=None):
 
     if name in ['cora', 'citeseer', 'pubmed']:   # datasets for transductive node classifiction
         data = Planetoid(osp.join(ROOT, 'data'), name, transform=transform)[0]
-        data.task = 'semi' # simi-supervised
+        data.task = 'semi' # semi-supervised
         data.setting = 'transductive' # transductive
         return data
     
