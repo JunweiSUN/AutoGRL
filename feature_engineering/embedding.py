@@ -80,9 +80,9 @@ def node2vec(data, name, embedding_dim=64, epochs=40):
     def train():
         model.train()
         total_loss = 0
-        for pos_rw, new_rw in loader:
+        for pos_rw, neg_rw in loader:
             optimizer.zero_grad()
-            loss = model.loss(pos_rw.to('cuda'), new_rw.to('cuda'))
+            loss = model.loss(pos_rw.to('cuda'), neg_rw.to('cuda'))
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
