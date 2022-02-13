@@ -139,6 +139,7 @@ cache/
 catboost_info/
 embeddings/
 figures/
+logs/
 # vscode
 .vscode/
 

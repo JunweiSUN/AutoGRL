@@ -74,7 +74,7 @@ def node2vec(data, name, embedding_dim=64, epochs=40):
         model = Node2Vec(data.train_edge_index, embedding_dim, walk_length=20, context_size=10, walks_per_node=10, num_negative_samples=1, sparse=True).to('cuda')
     else:
         model = Node2Vec(data.edge_index, embedding_dim, walk_length=20, context_size=10, walks_per_node=10, num_negative_samples=1, sparse=True).to('cuda')
-    loader = model.loader(batch_size=128, shuffle=True, num_workers=8)
+    loader = model.loader(batch_size=128, shuffle=True, num_workers=0)
     optimizer = torch.optim.SparseAdam(model.parameters(), lr=0.01)
 
     def train():
